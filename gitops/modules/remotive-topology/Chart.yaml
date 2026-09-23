@@ -1,4 +1,4 @@
-# Copyright (c) 2024-2026 Accenture, All Rights Reserved.
+# Copyright (c) 2026 RemotiveLabs, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
 # limitations under the License.
 
 apiVersion: v2
-name: module-manager
-description: Horizon SDV Module Manager - controller and REST API for module enable/disable
-version: 0.3.3
+name: remotive-topology
+description: RemotiveTopology (remotive-topology) pipelines — builder image, instance template, and topology launcher — via Module Manager
+version: 0.1.0
 type: application
-appVersion: "0.3.3"
+appVersion: "0.1.0"

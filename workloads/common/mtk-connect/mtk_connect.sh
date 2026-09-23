@@ -32,6 +32,18 @@
 #  - MTK_CONNECT_DEVICE_PREFIX: prefix for device name.
 #    and access only to the host machine will be allowed.
 #  - MTK_CONNECT_TUNNEL_PORT: ADB tunnel caller port in create-testbench (default 8555).
+#  - MTK_CONNECT_TERMINAL_USER: login user for the HOST terminal; defaults to
+#    the builder/jenkins fallback chain.
+#  - MTK_CONNECT_TUNNEL_LIST: comma-separated name:port entries; each becomes
+#    a raw TCP tunnel to the device host for the MTK Connect Tunnel client
+#    (on adb devices the tunnels are attached to the dedicated
+#    MTK_CONNECT_TUNNEL_DEVICE_NAME device when set, else to device 1).
+#  - MTK_CONNECT_TUNNEL_DEVICE_NAME: with adb devices and a tunnel list, carry
+#    the raw TCP tunnels on a dedicated host-only device with this name at
+#    index 1 (adb devices shift to index 2..N+1) instead of the first adb
+#    device.
+#  - MTK_CONNECT_DEVICE_NAME_LIST: comma-separated device names overriding
+#    "<MTK_CONNECT_DEVICE_PREFIX> <index>" per index.
 #
 # Example Usage:
 # sudo \
@@ -57,7 +69,11 @@ MTK_CONNECT_DELETE_OFFLINE_TESTBENCHES=${MTK_CONNECT_DELETE_OFFLINE_TESTBENCHES:
 MTK_CONNECT_CONTAINER_ONLY=${MTK_CONNECT_CONTAINER_ONLY:-false}
 MTK_CONNECT_HOST_ONLY=${MTK_CONNECT_HOST_ONLY:-false}
 MTK_CONNECT_DEVICE_PREFIX=${MTK_CONNECT_DEVICE_PREFIX:-AAOS}
+MTK_CONNECT_DEVICE_NAME_LIST=${MTK_CONNECT_DEVICE_NAME_LIST:-}
 MTK_CONNECT_TUNNEL_PORT=${MTK_CONNECT_TUNNEL_PORT:-8555}
+MTK_CONNECT_TERMINAL_USER=${MTK_CONNECT_TERMINAL_USER:-}
+MTK_CONNECT_TUNNEL_LIST=${MTK_CONNECT_TUNNEL_LIST:-}
+MTK_CONNECT_TUNNEL_DEVICE_NAME=${MTK_CONNECT_TUNNEL_DEVICE_NAME:-}
 NODEJS_VERSION=${NODEJS_VERSION-20.9.0}
 
 declare -r scripts_path="/usr/src/scripts"
@@ -67,8 +83,9 @@ declare -r mtkc_config_path="/opt/mtk-connect-agent/config"
 
 # Get the host and port from adb if MTK Connect is using adb.
 # If devices don't exist then the defaults will be used from
-# the environment.
-if dpkg -s adb > /dev/null 2>&1; then
+# the environment. Explicitly provided host/port lists take precedence
+# over adb auto-detection.
+if [ -z "${MTK_CONNECT_HOST_LIST:-}" ] && dpkg -s adb > /dev/null 2>&1; then
     # Retrieve a list of the devices host ip and port numbers.
     adb start-server || true
     sleep 20
@@ -103,7 +120,11 @@ function mtkc_start() {
         echo "MTK_CONNECT_LAUNCH_APPLICATION_NAME=${MTK_CONNECT_LAUNCH_APPLICATION_NAME}"
         echo "MTK_CONNECT_HOST_ONLY=${MTK_CONNECT_HOST_ONLY}"
         echo "MTK_CONNECT_DEVICE_PREFIX=${MTK_CONNECT_DEVICE_PREFIX}"
+        echo "MTK_CONNECT_DEVICE_NAME_LIST=${MTK_CONNECT_DEVICE_NAME_LIST}"
         echo "MTK_CONNECT_TUNNEL_PORT=${MTK_CONNECT_TUNNEL_PORT}"
+        echo "MTK_CONNECT_TERMINAL_USER=${MTK_CONNECT_TERMINAL_USER}"
+        echo "MTK_CONNECT_TUNNEL_LIST=${MTK_CONNECT_TUNNEL_LIST}"
+        echo "MTK_CONNECT_TUNNEL_DEVICE_NAME=${MTK_CONNECT_TUNNEL_DEVICE_NAME}"
     } >> "${scripts_path}"/.env
 
     {
@@ -235,6 +256,9 @@ Environment:
     MTK_CONNECT_HOST_ONLY=${MTK_CONNECT_HOST_ONLY}
     MTK_CONNECT_DEVICE_PREFIX=${MTK_CONNECT_DEVICE_PREFIX}
     MTK_CONNECT_TUNNEL_PORT=${MTK_CONNECT_TUNNEL_PORT}
+    MTK_CONNECT_TERMINAL_USER=${MTK_CONNECT_TERMINAL_USER}
+    MTK_CONNECT_TUNNEL_LIST=${MTK_CONNECT_TUNNEL_LIST}
+    MTK_CONNECT_TUNNEL_DEVICE_NAME=${MTK_CONNECT_TUNNEL_DEVICE_NAME}
    "
 echo "${VARIABLES}"
 

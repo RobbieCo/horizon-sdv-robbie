@@ -1,4 +1,4 @@
-# Copyright (c) 2024-2026 Accenture, All Rights Reserved.
+# Copyright (c) 2026 RemotiveLabs, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
+# Description:
+# Helm chart metadata for the remotive-topology builder image workflow.
 apiVersion: v2
-name: module-manager
-description: Horizon SDV Module Manager - controller and REST API for module enable/disable
-version: 0.3.3
+name: remotive-builder-image
+description: Helm chart for the remotive-topology (RemotiveTopology) builder image workflow
 type: application
-appVersion: "0.3.3"
+version: 0.1.0
+appVersion: "1.0"

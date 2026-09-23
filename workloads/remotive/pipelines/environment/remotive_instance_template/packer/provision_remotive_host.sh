@@ -1,4 +1,6 @@
-# Copyright (c) 2024-2026 Accenture, All Rights Reserved.
+#!/usr/bin/env bash
+
+# Copyright (c) 2026 RemotiveLabs, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,10 +13,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Packer shell provisioner entry: runs remotive_host_initialise.sh from the uploaded
+# /tmp/remotive scripts directory (mirrors cf_instance_template/packer/provision_cf_host.sh).
 
-apiVersion: v2
-name: module-manager
-description: Horizon SDV Module Manager - controller and REST API for module enable/disable
-version: 0.3.3
-type: application
-appVersion: "0.3.3"
+set -euo pipefail
+
+if [ ! -d /tmp/remotive ]; then
+    echo "ERROR: /tmp/remotive scripts directory not found"
+    exit 1
+fi
+
+chmod +x /tmp/remotive/*.sh
+
+cd /tmp/remotive
+./remotive_host_initialise.sh
+
+sync
