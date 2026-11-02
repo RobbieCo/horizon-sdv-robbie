@@ -33,7 +33,7 @@ spec:
       containers:
         - name: horizon-api
           image: {{ .Values.image | quote }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.imagePullPolicy | default "Always" }}
           args:
             - "--namespace={{ .Values.namespace }}"
             - "--module-manager-namespace={{ .Values.moduleManagerNamespace }}"
@@ -78,6 +78,11 @@ spec:
             - "--artifacts-allowed-buckets={{ .Values.artifactsAllowedBuckets }}"
             {{- end }}
           env:
+            {{- if .Values.caConfigMap }}
+            # Local dev: trust the self-signed CA for https://<domain> (Go uses SSL_CERT_FILE).
+            - name: SSL_CERT_FILE
+              value: /etc/horizon-ca/ca.crt
+            {{- end }}
             # File, not secretKeyRef. An env value is fixed when the container
             # starts: this Deployment syncs before storage-gcs-module creates
             # the secret, and a later rotation would keep the old token until
@@ -91,6 +96,11 @@ spec:
               value: {{ .Values.gceMetadataHost | quote }}
             {{- end }}
           volumeMounts:
+            {{- if .Values.caConfigMap }}
+            - name: horizon-local-ca
+              mountPath: /etc/horizon-ca
+              readOnly: true
+            {{- end }}
             - name: storage-gcs-api-ca
               mountPath: /etc/storage-gcs
               readOnly: true
@@ -119,6 +129,14 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
       volumes:
+        {{- if .Values.caConfigMap }}
+        - name: horizon-local-ca
+          configMap:
+            name: {{ .Values.caConfigMap }}
+            items:
+              - key: ca.crt
+                path: ca.crt
+        {{- end }}
         - name: storage-gcs-api-ca
           secret:
             secretName: storage-gcs-module-api-tls

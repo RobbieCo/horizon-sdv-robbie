@@ -1,3 +1,4 @@
+{{- if not .Values.config.local.enabled -}}
 # Copyright (c) 2024-2026 Accenture, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -296,4 +297,5 @@ spec:
         cidr: 0.0.0.0/0
     # Allow all ports for Jenkins agents (needed for metadata server on various ports)
 
+{{- end }}
 {{- end }}

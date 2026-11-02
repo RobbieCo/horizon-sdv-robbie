@@ -37,7 +37,7 @@ spec:
       containers:
         - name: horizon-dev-portal
           image: {{ .Values.config.gitops.horizonDevPortal }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.config.imagePullPolicy | default "Always" }}
           ports:
             - name: http
               containerPort: 8080
@@ -51,6 +51,17 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.config.namespacePrefix }}horizon-dev-portal-secrets
                   key: HORIZON_API_CI_CLIENT_SECRET
+            {{- if .Values.config.caConfigMap }}
+            # Local dev: trust the self-signed CA for server-side token exchange to https://<domain>.
+            - name: SSL_CERT_FILE
+              value: /etc/horizon-ca/ca.crt
+            {{- end }}
+          {{- if .Values.config.caConfigMap }}
+          volumeMounts:
+            - name: horizon-local-ca
+              mountPath: /etc/horizon-ca
+              readOnly: true
+          {{- end }}
           readinessProbe:
             httpGet:
               path: /healthz
@@ -65,3 +76,12 @@ spec:
             periodSeconds: 20
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.config.caConfigMap }}
+      volumes:
+        - name: horizon-local-ca
+          configMap:
+            name: {{ .Values.config.caConfigMap }}
+            items:
+              - key: ca.crt
+                path: ca.crt
+      {{- end }}

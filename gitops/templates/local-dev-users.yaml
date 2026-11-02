@@ -1,0 +1,121 @@
+{{- if and .Values.config.local.enabled .Values.config.local.devUsers -}}
+{{- /*
+Copyright (c) 2026 Accenture, All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Local developer mode only: additive finisher that creates the dev login users
+(e.g. admin, developer) with a PERMANENT shared password and realm-group
+membership, so developers can log in immediately. It does NOT modify the
+production keycloak-post realm seed (that job's bootstrap admin + password policy
+are untouched). Pure curl against the in-cluster Keycloak admin API; mirrors the
+URL construction of keycloak-post-horizon-dev-portal-client.yaml.
+*/}}
+{{- $realm := .Values.config.horizonDevelopmentPortal.keycloakRealm }}
+{{- $kp := .Values.config.horizonDevelopmentPortal.keycloakHttpPathPrefix }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.config.namespacePrefix }}local-dev-users-job
+  namespace: {{ .Values.config.namespacePrefix }}keycloak
+  annotations:
+    # After keycloak-post (realm + groups, wave 4) and app client jobs (wave 5).
+    argocd.argoproj.io/sync-wave: "8"
+    argocd.argoproj.io/hook: Sync
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 120
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: local-dev-users
+          image: curlimages/curl:8.11.0
+          terminationMessagePolicy: FallbackToLogsOnError
+          env:
+            - name: PLATFORM_URL
+              value: "http://{{ .Values.config.namespacePrefix }}keycloak-keycloakx-http:8080"
+            - name: KEYCLOAK_HTTP_PATH_PREFIX
+              value: {{ $kp | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ $realm | quote }}
+            # Master-realm admin password (also the shared dev password locally).
+            - name: KEYCLOAK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-initial-creds
+                  key: password
+            - name: DEV_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-initial-creds
+                  key: password
+          command:
+            - sh
+            - -c
+            - |
+              exec 2>&1
+              set -eu
+              KP="${KEYCLOAK_HTTP_PATH_PREFIX%/}"
+              TOKEN_URL="${PLATFORM_URL}${KP}/realms/master/protocol/openid-connect/token"
+              REALM_ADMIN="${PLATFORM_URL}${KP}/admin/realms/${KEYCLOAK_REALM}"
+
+              echo "local-dev-users: requesting admin token"
+              TOKEN=$(curl -sS \
+                --data-urlencode "client_id=admin-cli" \
+                --data-urlencode "username=admin" \
+                --data-urlencode "password=${KEYCLOAK_PASSWORD}" \
+                --data-urlencode "grant_type=password" \
+                "$TOKEN_URL" | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')
+              if [ -z "$TOKEN" ]; then echo "local-dev-users: failed to obtain token"; exit 1; fi
+
+              upsert_user() {
+                USERNAME="$1"
+                curl -sS -o /dev/null -w "  create ${USERNAME}: %{http_code}\n" -X POST \
+                  -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
+                  -d "{\"username\":\"${USERNAME}\",\"enabled\":true,\"emailVerified\":true}" \
+                  "${REALM_ADMIN}/users" || true
+                USER_ID=$(curl -sS -H "Authorization: Bearer ${TOKEN}" \
+                  "${REALM_ADMIN}/users?username=${USERNAME}&exact=true" \
+                  | grep -o '"id":"[^"]*"' | head -1 | sed 's/"id":"//;s/"//')
+                if [ -z "$USER_ID" ]; then echo "  ${USERNAME}: no id"; return 1; fi
+                curl -sS -o /dev/null -w "  password ${USERNAME}: %{http_code}\n" -X PUT \
+                  -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
+                  -d "{\"type\":\"password\",\"temporary\":false,\"value\":\"${DEV_PASSWORD}\"}" \
+                  "${REALM_ADMIN}/users/${USER_ID}/reset-password"
+                echo "$USER_ID"
+              }
+
+              add_group() {
+                UID_IN="$1"; GROUP="$2"
+                GID=$(curl -sS -H "Authorization: Bearer ${TOKEN}" \
+                  "${REALM_ADMIN}/groups?search=${GROUP}" \
+                  | grep -o "\"id\":\"[^\"]*\",\"name\":\"${GROUP}\"" | head -1 \
+                  | sed 's/"id":"//;s/".*//')
+                if [ -z "$GID" ]; then echo "  group ${GROUP}: not found"; return 1; fi
+                curl -sS -o /dev/null -w "  ${GROUP} membership: %{http_code}\n" -X PUT \
+                  -H "Authorization: Bearer ${TOKEN}" \
+                  "${REALM_ADMIN}/users/${UID_IN}/groups/${GID}"
+              }
+
+              {{- range $u := .Values.config.local.devUsers }}
+              echo "local-dev-users: {{ $u.username }}"
+              UID_CUR=$(upsert_user {{ $u.username | quote }} | tail -1)
+              {{- range $g := $u.groups }}
+              add_group "$UID_CUR" {{ $g | quote }}
+              {{- end }}
+              {{- end }}
+
+              echo "local-dev-users: done"
+{{- end }}

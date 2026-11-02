@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Accenture, All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# =========================================================================
+#  LOCAL developer prototype configuration.
+#  Copy to terraform.tfvars and adjust. No GCP values, no secrets in git.
+# =========================================================================
+
+# Desktop cluster (only rancher-desktop or docker-desktop are allowed).
+kube_context    = "rancher-desktop"
+kubeconfig_path = "~/.kube/config"
+
+# Single host for all services (must resolve to 127.0.0.1 on the host).
+base_domain = "horizon.local"
+
+# GitOps source ArgoCD pulls the trimmed overlay from.
+scm_repo_url    = "https://github.com/<org>/horizon-sdv"
+scm_repo_branch = "horizon-local-development-mode"
+gitops_path     = "gitops"
+
+# Locally built images (loaded into the desktop image store).
+image_tag         = "local"
+image_pull_policy = "IfNotPresent"
+# image_overrides defaults are set in variables.tf; override here if needed.
+
+# Services (fixed scope, toggleable).
+enabled_services = ["keycloak", "argocd", "horizon-api", "module-manager", "argo-workflows", "portal"]
+
+# Dev credentials (localhost-only; must satisfy the realm password policy).
+dev_password = "Horizon@123"
+dev_users = [
+  { username = "admin", groups = ["administrators"] },
+  { username = "developer", groups = ["developers"] },
+]
+
+# Local behaviour toggles.
+enable_network_policies = false
+argo_workflows_archive  = false
+keycloak_post_jobs      = ["base", "horizon-api", "argo-workflows", "argocd"]
+postgresql_persistence  = true

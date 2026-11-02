@@ -1,0 +1,9 @@
+# Local Terraform state and config — never commit.
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+terraform.tfvars
+*.auto.tfvars
+# Backend selected at init time by deploy.sh --local.
+backend_override.tf

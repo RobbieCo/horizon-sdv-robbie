@@ -91,6 +91,45 @@ config:
       # Set by Terraform on live clusters (MODULE_CONFIG for Module Manager module workloads-android).
       url: ""
       branch: ""
+
+  # Local developer prototype mode (terraform/local + Rancher/Docker Desktop).
+  # DEFAULT false => production/cloud behaviour is completely unchanged; none of the
+  # local-only branches below render. This is the SINGLE switch that the local ArgoCD
+  # Application sets to true (config.local.enabled). There is no separate gitops copy.
+  local:
+    enabled: false
+    # Public base URL + OIDC issuer for the desktop cluster (https://horizon.local).
+    platformUrl: ""
+    issuerUrl: ""
+    # ingress-nginx replaces the GKE Gateway for the in-scope services.
+    ingressClassName: "nginx"
+    # Empty => rely on the ingress-nginx controller default-ssl-certificate
+    # (ingress-nginx/horizon-local-tls created by terraform/local).
+    tlsSecretName: ""
+    # Services kept in the minimal local stack (informational; gating is per-template).
+    enabledServices: []
+    # Module Manager + its ModuleCatalog are IDENTICAL to production (no trimming), so
+    # production MM can be developed on the local cluster. The modules' cloud (KCC /
+    # *.cnrm.cloud.google.com) resources are stubbed at the cluster level by
+    # bootstrap-local.sh (inert CRDs, no controller) plus an ArgoCD health override in
+    # terraform/local/argocd.tf. See docs/local_dev_prototype_proposal.md.
+    # Locally built images are loaded straight into the desktop image store.
+    imagePullPolicy: "IfNotPresent"
+    # Keep PostgreSQL data across restarts (PVC) vs emptyDir.
+    postgresqlPersistence: true
+    # Archiving/MinIO disabled locally (no cloud bucket).
+    argoWorkflowsArchive: false
+    # keycloak-post realm/client seed jobs to run locally.
+    keycloakPostJobs: []
+    # ConfigMap (per namespace) holding the self-signed CA so pods trust https://horizon.local.
+    caConfigMap: "horizon-local-ca"
+    # Base64-encoded CA certificate (PEM) injected by terraform/local. Used by the
+    # local-only templates/local-ca.yaml to create the CA ConfigMap in app namespaces.
+    caBundleB64: ""
+    # Developer login users created by the local-only finisher Job
+    # (templates/local-dev-users.yaml). Each: {username, groups: [realm group names]}.
+    # Password is the shared dev password (keycloak-initial-creds), set permanent.
+    devUsers: []
 spec:
   destination:
     server: https://kubernetes.default.svc

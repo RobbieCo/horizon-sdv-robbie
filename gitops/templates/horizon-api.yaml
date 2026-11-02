@@ -30,6 +30,10 @@ spec:
     helm:
       values: |
         image: {{ .Values.config.containerImages.horizonApi | quote }}
+        {{- if .Values.config.local.enabled }}
+        imagePullPolicy: {{ .Values.config.local.imagePullPolicy }}
+        caConfigMap: {{ .Values.config.local.caConfigMap }}
+        {{- end }}
         namespace: {{ .Values.config.namespacePrefix }}horizon-api
         moduleManagerNamespace: module-manager
         gcsBucketsNamespace: {{ .Values.config.namespacePrefix }}horizon

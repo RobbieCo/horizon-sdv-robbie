@@ -33,7 +33,7 @@ spec:
       containers:
         - name: module-manager
           image: {{ .Values.image }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.imagePullPolicy | default "Always" }}
           args:
             - "--namespace={{ .Values.namespace }}"
             - "--argocd-namespace={{ .Values.argocd.namespace }}"

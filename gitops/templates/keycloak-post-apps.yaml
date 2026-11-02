@@ -60,6 +60,7 @@ subjects:
     name: keycloak-writer-sa
     namespace: {{ .Values.config.namespacePrefix }}keycloak
 ---
+{{- if not .Values.config.local.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -94,7 +95,9 @@ spec:
           image: {{ .Values.config.postjobs.keycloakmtkconnect }}
           imagePullPolicy: Always
       restartPolicy: Never
+{{- end }}
 ---
+{{- if not .Values.config.local.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -139,7 +142,9 @@ spec:
           image: {{ .Values.config.postjobs.keycloakjenkins }}
           imagePullPolicy: Always
       restartPolicy: Never
+{{- end }}
 ---
+{{- if not .Values.config.local.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -174,6 +179,7 @@ spec:
           image: {{ .Values.config.postjobs.keycloakheadlamp }}
           imagePullPolicy: Always
       restartPolicy: Never
+{{- end }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -217,9 +223,10 @@ spec:
                   name: keycloak-argocd-admin
                   key: password
           image: {{ .Values.config.postjobs.keycloakargocd }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ if .Values.config.local.enabled }}{{ .Values.config.local.imagePullPolicy }}{{ else }}Always{{ end }}
       restartPolicy: Never
 ---
+{{- if not .Values.config.local.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -264,7 +271,9 @@ spec:
           image: {{ .Values.config.postjobs.keycloakgerrit }}
           imagePullPolicy: Always
       restartPolicy: Never
+{{- end }}
 ---
+{{- if not .Values.config.local.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -309,7 +318,9 @@ spec:
           image: {{ .Values.config.postjobs.keycloakgrafana }}
           imagePullPolicy: Always
       restartPolicy: Never
+{{- end }}
 ---
+{{- if not .Values.config.local.enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -354,6 +365,7 @@ spec:
           image: {{ .Values.config.postjobs.keycloakMcpGatewayRegistry }}
           imagePullPolicy: Always
       restartPolicy: Never
+{{- end }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -387,7 +399,7 @@ spec:
                   name: keycloak-initial-creds
                   key: password
           image: {{ .Values.config.postjobs.keycloakArgoWorkflows }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ if .Values.config.local.enabled }}{{ .Values.config.local.imagePullPolicy }}{{ else }}Always{{ end }}
       restartPolicy: Never
 ---
 apiVersion: batch/v1
@@ -422,5 +434,5 @@ spec:
                   name: keycloak-initial-creds
                   key: password
           image: {{ .Values.config.postjobs.keycloakhorizonapi }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ if .Values.config.local.enabled }}{{ .Values.config.local.imagePullPolicy }}{{ else }}Always{{ end }}
       restartPolicy: Never

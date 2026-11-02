@@ -30,6 +30,9 @@ spec:
       # Overrides merged on top of gitops/apps/module-manager/values.yaml (module list is in templates/module-catalog.yaml).
       values: |
         image: {{ .Values.config.containerImages.moduleManager | quote }}
+        {{- if .Values.config.local.enabled }}
+        imagePullPolicy: {{ .Values.config.local.imagePullPolicy }}
+        {{- end }}
         namespace: module-manager
         argocd:
           namespace: {{ .Values.config.namespacePrefix }}argocd

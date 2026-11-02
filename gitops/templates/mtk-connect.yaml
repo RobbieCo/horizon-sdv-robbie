@@ -1,3 +1,4 @@
+{{- if not .Values.config.local.enabled -}}
 # Copyright (c) 2024-2026 Accenture, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -176,4 +177,5 @@ spec:
       port: 443    # Kubernetes API
     - protocol: TCP
       port: 6443   # Kubernetes API (alternative port)
+{{- end }}
 {{- end }}

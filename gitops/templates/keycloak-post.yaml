@@ -49,5 +49,5 @@ spec:
                   name: keycloak-horizon-admin
                   key: password
           image: {{ .Values.config.postjobs.keycloak }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ if .Values.config.local.enabled }}{{ .Values.config.local.imagePullPolicy }}{{ else }}Always{{ end }}
       restartPolicy: Never

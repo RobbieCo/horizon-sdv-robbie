@@ -12,6 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.config.local.enabled }}
+# Local: use the desktop cluster's default StorageClass (Rancher local-path /
+# Docker Desktop hostpath). No GKE pd.csi StorageClass; omitting storageClassName
+# binds the PVC to the cluster default.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.config.namespacePrefix }}postgresql-data
+  namespace: {{ .Values.config.namespacePrefix }}keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  volumeMode: Filesystem
+{{- else }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -40,3 +59,4 @@ spec:
       storage: 8Gi
   storageClassName: {{ .Values.config.namespacePrefix }}postgresql-rwo
   volumeMode: Filesystem
+{{- end }}

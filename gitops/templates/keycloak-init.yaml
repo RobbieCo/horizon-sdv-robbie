@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if not .Values.config.local.enabled }}
+{{- /*
+Local mode supplies these credential Secrets directly from terraform/local
+(plain Kubernetes Secrets); the GKE Workload Identity SA + External Secrets
+wiring below is cloud-only and is skipped on the desktop cluster.
+*/}}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -299,3 +305,4 @@ spec:
       remoteRef:
         key: {{ .Values.config.namespacePrefix }}mcp-gateway-registry-admin-password-b64
         decodingStrategy: Base64
+{{- end }}

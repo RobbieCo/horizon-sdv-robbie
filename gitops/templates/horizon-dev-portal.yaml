@@ -36,6 +36,10 @@ spec:
           tag: {{ .Values.config.versions.components.horizoncore | quote }}
         config:
           namespacePrefix: {{ .Values.config.namespacePrefix | quote }}
+          {{- if .Values.config.local.enabled }}
+          imagePullPolicy: {{ .Values.config.local.imagePullPolicy }}
+          caConfigMap: {{ .Values.config.local.caConfigMap }}
+          {{- end }}
           gitops:
             horizonDevPortal: {{ .Values.config.containerImages.horizondevelopmentportal | quote }}
           domain: {{ .Values.config.domain | quote }}

@@ -1,0 +1,38 @@
+{{- if .Values.config.local.enabled -}}
+{{- /*
+Copyright (c) 2026 Accenture, All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Local developer mode only: distribute the self-signed CA (from terraform/local)
+into the namespaces whose Go pods validate TLS to https://<domain> server-side
+(horizon-api JWKS, horizon-dev-portal proxy token exchange). SSL_CERT_FILE in
+those deployments points at the mounted ca.crt. Not rendered in cloud mode.
+*/}}
+{{- $caB64 := .Values.config.local.caBundleB64 }}
+{{- if $caB64 }}
+{{- range $ns := list "horizon-api" "horizon-dev-portal" }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Values.config.local.caConfigMap }}
+  namespace: {{ $.Values.config.namespacePrefix }}{{ $ns }}
+  annotations:
+    # Before the app Deployments (horizon-dev-portal wave 6, horizon-api wave 7).
+    argocd.argoproj.io/sync-wave: "0"
+binaryData:
+  ca.crt: {{ $caB64 }}
+{{- end }}
+{{- end }}
+{{- end }}

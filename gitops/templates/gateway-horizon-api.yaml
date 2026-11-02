@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.config.local.enabled }}
+{{- include "horizon.local.ingress" (dict "root" $ "name" "horizon-api" "namespace" "horizon-api" "serviceName" "horizon-api" "servicePort" 80 "pathPrefix" "/horizon-api" "stripPrefix" true "syncWave" "8") }}
+{{- else }}
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
@@ -181,4 +184,5 @@ spec:
       ports:
         - protocol: TCP
           port: 443
+{{- end }}
 {{- end }}

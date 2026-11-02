@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+{{- if .Values.config.local.enabled }}
+{{- $pp := .Values.config.horizonDevelopmentPortal.publicPath | trimSuffix "/" }}
+{{- include "horizon.local.ingress" (dict "root" $ "name" "horizon-dev-portal" "namespace" "horizon-dev-portal" "serviceName" "horizon-dev-portal" "servicePort" 80 "pathPrefix" $pp "stripPrefix" true "appRoot" (printf "%s/" $pp) "syncWave" "7") }}
+{{- else }}
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
@@ -136,4 +140,5 @@ spec:
     - ports:
         - protocol: TCP
           port: 8080
+{{- end }}
 {{- end }}

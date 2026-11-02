@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.config.local.enabled }}
+{{- include "horizon.local.ingress" (dict "root" $ "name" "argocd" "namespace" "argocd" "serviceName" "argocd-server" "servicePort" 80 "pathPrefix" "/argocd" "stripPrefix" false "proxyTimeout" "86400" "syncWave" "1") }}
+{{- else }}
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
@@ -113,4 +116,5 @@ spec:
     - protocol: TCP
       port: 8080   # Health check port
 
+{{- end }}
 {{- end }}

@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if .Values.config.local.enabled }}
+{{- include "horizon.local.ingress" (dict "root" $ "name" "argo-workflows" "namespace" "argo-workflows" "serviceName" "argo-workflows-server" "servicePort" 2746 "pathPrefix" "/workflows" "stripPrefix" true "proxyTimeout" "86400" "syncWave" "8") }}
+{{- else }}
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
@@ -88,3 +91,4 @@ spec:
     group: ""
     kind: Service
     name: {{ .Values.config.namespacePrefix }}argo-workflows-server
+{{- end }}

@@ -27,6 +27,15 @@ CONTAINER_CONFIG="/tmp/terraform.tfvars"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GKE_CLUSTER="sdv-cluster"
 
+# Local developer prototype dispatch.
+# `./deploy.sh --local [-p|-a|-d]` hands off to deploy-local.sh, which targets the
+# desktop Kubernetes (Rancher/Docker Desktop) and never touches GCP. All GCP logic
+# below is left exactly as-is for the standard cloud deployment path.
+if [[ "${1:-}" == "--local" ]]; then
+  shift
+  exec "${SCRIPT_DIR}/deploy-local.sh" "$@"
+fi
+
 # Output Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
