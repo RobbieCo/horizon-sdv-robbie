@@ -62,6 +62,22 @@ else
   exit 1
 fi
 
+# The portal Dockerfile's `cli` stage does `COPY cli/ ./`, but the Horizon CLI
+# sources live in tools/horizon (the legacy docker builder cannot use additional
+# build contexts). In production, Terraform stages them via local_file; here we
+# mirror tools/horizon into <portal-context>/cli (gitignored) before the build.
+stage_portal_cli() {
+  local ctx="${IMAGES_DIR}/horizon-dev-portal/horizon-dev-portal"
+  local cli_src="${REPO_ROOT}/tools/horizon"
+  [[ -d "$ctx" && -d "$cli_src" ]] || return 0
+  log_info "Staging Horizon CLI sources into portal context (cli/)."
+  rm -rf "${ctx}/cli"
+  mkdir -p "${ctx}/cli"
+  cp -R "${cli_src}/." "${ctx}/cli/"
+}
+
+stage_portal_cli
+
 for entry in "${IMAGES[@]}"; do
   name="${entry%%|*}"
   subdir="${entry##*|}"
