@@ -81,19 +81,34 @@ spec:
               if [ -z "$TOKEN" ]; then echo "local-dev-users: failed to obtain token"; exit 1; fi
 
               upsert_user() {
-                USERNAME="$1"
+                USERNAME="$1"; FIRST="$2"; LAST="$3"; EMAIL="$4"
+                # Keycloak's default user profile requires firstName/lastName for
+                # end-users; without them the VERIFY_PROFILE required action fires
+                # on login and the portal's direct-access-grant (ROPC) flow fails
+                # with "Account is not fully set up". Seed a complete profile and
+                # clear any required actions so login works immediately.
+                BODY="{\"username\":\"${USERNAME}\",\"enabled\":true,\"emailVerified\":true,\"firstName\":\"${FIRST}\",\"lastName\":\"${LAST}\",\"email\":\"${EMAIL}\",\"requiredActions\":[]}"
                 curl -sS -o /dev/null -w "  create ${USERNAME}: %{http_code}\n" -X POST \
                   -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
-                  -d "{\"username\":\"${USERNAME}\",\"enabled\":true,\"emailVerified\":true}" \
+                  -d "${BODY}" \
                   "${REALM_ADMIN}/users" || true
                 USER_ID=$(curl -sS -H "Authorization: Bearer ${TOKEN}" \
                   "${REALM_ADMIN}/users?username=${USERNAME}&exact=true" \
                   | grep -o '"id":"[^"]*"' | head -1 | sed 's/"id":"//;s/"//')
                 if [ -z "$USER_ID" ]; then echo "  ${USERNAME}: no id"; return 1; fi
+                # Idempotent: ensure profile/required-actions are correct even if
+                # the user already existed from a previous run.
+                curl -sS -o /dev/null -w "  profile ${USERNAME}: %{http_code}\n" -X PUT \
+                  -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
+                  -d "${BODY}" \
+                  "${REALM_ADMIN}/users/${USER_ID}"
+                # Set permanent password. On re-run the password history policy may
+                # reject reusing the same value (HTTP 400); that is harmless because
+                # the original value is already set, so do not fail the job.
                 curl -sS -o /dev/null -w "  password ${USERNAME}: %{http_code}\n" -X PUT \
                   -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
                   -d "{\"type\":\"password\",\"temporary\":false,\"value\":\"${DEV_PASSWORD}\"}" \
-                  "${REALM_ADMIN}/users/${USER_ID}/reset-password"
+                  "${REALM_ADMIN}/users/${USER_ID}/reset-password" || true
                 echo "$USER_ID"
               }
 
@@ -111,7 +126,7 @@ spec:
 
               {{- range $u := .Values.config.local.devUsers }}
               echo "local-dev-users: {{ $u.username }}"
-              UID_CUR=$(upsert_user {{ $u.username | quote }} | tail -1)
+              UID_CUR=$(upsert_user {{ $u.username | quote }} {{ $u.firstName | default ($u.username | title) | quote }} {{ $u.lastName | default "User" | quote }} {{ $u.email | default (printf "%s@%s" $u.username $.Values.config.domain) | quote }} | tail -1)
               {{- range $g := $u.groups }}
               add_group "$UID_CUR" {{ $g | quote }}
               {{- end }}
