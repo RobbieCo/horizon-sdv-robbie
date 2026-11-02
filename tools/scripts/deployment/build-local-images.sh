@@ -29,6 +29,16 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 IMAGES_DIR="${REPO_ROOT}/terraform/modules/sdv-container-images/images"
 TAG="${IMAGE_TAG:-local}"
 
+# Build for the desktop node's architecture (Apple Silicon = arm64) so pods run
+# natively, not under emulation. The parameterized Dockerfiles default to amd64
+# for production; here we pass --platform explicitly. Override with LOCAL_ARCH.
+case "${LOCAL_ARCH:-$(uname -m)}" in
+  arm64|aarch64) LOCAL_ARCH="arm64" ;;
+  x86_64|amd64)  LOCAL_ARCH="amd64" ;;
+  *)             LOCAL_ARCH="amd64" ;;
+esac
+PLATFORM="linux/${LOCAL_ARCH}"
+
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 log_info() { echo -e "${GREEN}[INFO] $1${NC}"; }
 log_warn() { echo -e "${YELLOW}[WARN] $1${NC}"; }
@@ -86,8 +96,15 @@ for entry in "${IMAGES[@]}"; do
     log_warn "Skipping ${name}: no Dockerfile at ${context}"
     continue
   fi
-  log_info "Building ${name}:${TAG}"
-  "${BUILD[@]}" -t "${name}:${TAG}" "${context}"
+  log_info "Building ${name}:${TAG} (${PLATFORM})"
+  # Pass TARGETOS/TARGETARCH as build-args (not just --platform): the Dockerfiles
+  # default these ARGs to amd64 for production, and a default ARG value is NOT
+  # overridden by --platform alone, so the binary arch must be set explicitly.
+  "${BUILD[@]}" \
+    --platform="${PLATFORM}" \
+    --build-arg "TARGETOS=linux" \
+    --build-arg "TARGETARCH=${LOCAL_ARCH}" \
+    -t "${name}:${TAG}" "${context}"
 done
 
 log_info "All local images built."

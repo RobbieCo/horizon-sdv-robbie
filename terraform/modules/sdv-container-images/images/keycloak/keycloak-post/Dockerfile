@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM --platform=linux/amd64 node:22-alpine
+# Multi-arch: default linux/amd64 (production unchanged); local passes --platform.
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+FROM --platform=${TARGETOS}/${TARGETARCH} node:22-alpine
 # Patch OS packages (openssl, etc.) flagged by ISD security scan.
 RUN apk update && apk upgrade
 WORKDIR /usr/src/app
