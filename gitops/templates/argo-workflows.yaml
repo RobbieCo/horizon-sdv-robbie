@@ -70,6 +70,12 @@ spec:
           sso:
             enabled: true
             issuer: https://{{ .Values.config.domain }}/auth/realms/horizon
+            {{- if .Values.config.local.enabled }}
+            # Local dev: the issuer (https://horizon.local/auth) presents the
+            # self-signed dev CA, which the server's in-cluster OIDC discovery
+            # call cannot verify. Safe here because ingress binds localhost only.
+            insecureSkipVerify: true
+            {{- end }}
             clientId:
               name: argo-workflows-sso
               key: client-id
