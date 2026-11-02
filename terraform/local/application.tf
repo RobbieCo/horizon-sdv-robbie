@@ -124,6 +124,13 @@ resource "kubectl_manifest" "application" {
               repoOwner: ""
               branch: ${jsonencode(var.scm_repo_branch)}
               username: "git"
+            # Inherited by the child Application templates (module-manager,
+            # horizon-api, portal, ...) via .Values.spec.source.* so each app
+            # points back at this same repo/branch, mirroring production.
+            spec:
+              source:
+                repoURL: ${var.scm_repo_url}
+                targetRevision: ${var.scm_repo_branch}
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:

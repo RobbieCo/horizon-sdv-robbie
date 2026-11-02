@@ -34,7 +34,7 @@ Expected dict keys:
 {{- define "horizon.local.ingress" -}}
 {{- $root := .root -}}
 {{- $cfg := $root.Values.config -}}
-{{- $local := $cfg.local -}}
+{{- $local := $cfg.local }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
