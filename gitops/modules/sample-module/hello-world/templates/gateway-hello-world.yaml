@@ -12,6 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+{{- if eq (.Values.config.environmentName | default "") "local" }}
+# Local dev (Docker Desktop/Rancher): the cluster has no Gateway API or GKE
+# networking CRDs, so the GKE Gateway HTTPRoute + HealthCheckPolicy below cannot
+# apply (ArgoCD reports "synchronization tasks are not valid" and the whole sync,
+# including namespace creation, stalls). Expose hello-world via an ingress-nginx
+# Ingress instead, prefix-stripped like the platform services. TLS is served by
+# the controller's default certificate for the dev domain. Module Manager only
+# propagates config.* (not config.local), so we switch on environmentName.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-world
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ .Values.config.domain }}
+      http:
+        paths:
+          - path: {{ .Values.rootPath }}(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: hello-world
+                port:
+                  number: 8080
+{{- else }}
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
@@ -69,6 +100,7 @@ spec:
     group: ""
     kind: Service
     name: hello-world
+{{- end }}
 ---
 {{- if .Values.config.enableNetworkPolicies }}
 apiVersion: networking.k8s.io/v1
