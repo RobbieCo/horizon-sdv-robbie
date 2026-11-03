@@ -62,8 +62,9 @@ spec:
     spec:
       containers:
         - name: minio
-          image: minio/minio:RELEASE.2025-04-22T22-12-26Z
-          args: ["server", "/data", "--console-address", ":9001"]
+          # Official minio/minio is no longer anonymously pullable. This is the
+          # same MinIO server, published by Bitnami under the legacy namespace.
+          image: bitnamilegacy/minio:2025.7.23
           env:
             - name: MINIO_ROOT_USER
               valueFrom:
@@ -75,6 +76,8 @@ spec:
                 secretKeyRef:
                   name: horizon-local-minio
                   key: secretKey
+            - name: MINIO_DEFAULT_BUCKETS
+              value: horizon-artifacts
           ports:
             - name: api
               containerPort: 9000
@@ -103,41 +106,4 @@ spec:
     - name: api
       port: 9000
       targetPort: api
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: minio-create-bucket
-  namespace: {{ .Values.config.namespacePrefix }}argo-workflows
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-spec:
-  backoffLimit: 10
-  ttlSecondsAfterFinished: 300
-  template:
-    spec:
-      restartPolicy: OnFailure
-      containers:
-        - name: mc
-          image: minio/mc:RELEASE.2025-04-16T18-13-26Z
-          env:
-            - name: MINIO_ROOT_USER
-              valueFrom:
-                secretKeyRef:
-                  name: horizon-local-minio
-                  key: accessKey
-            - name: MINIO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: horizon-local-minio
-                  key: secretKey
-          command: ["sh", "-c"]
-          args:
-            - |
-              set -eu
-              until mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
-                sleep 2
-              done
-              mc mb --ignore-existing local/horizon-artifacts
-              echo "bucket ready"
 {{- end }}
