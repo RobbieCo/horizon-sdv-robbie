@@ -134,8 +134,23 @@ spec:
         # gitops horizon-api gcsSigningServiceAccount matches the Workload Identity GSA for this environment.
         artifactRepository:
           archiveLogs: true
+          {{- if .Values.config.local.enabled }}
+          # No GCS on the desktop. MinIO (templates/local-minio.yaml) emulates
+          # the artifact bucket; the WorkflowTemplates themselves are unchanged.
+          s3:
+            bucket: horizon-artifacts
+            endpoint: minio.{{ .Values.config.namespacePrefix }}argo-workflows.svc.cluster.local:9000
+            insecure: true
+            accessKeySecret:
+              name: horizon-local-minio
+              key: accessKey
+            secretKeySecret:
+              name: horizon-local-minio
+              key: secretKey
+          {{- else }}
           gcs:
             bucket: {{ .Values.config.projectID }}-argo-workflows
+          {{- end }}
 
         # Custom links
         links:

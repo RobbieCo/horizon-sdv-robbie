@@ -20,6 +20,6 @@ metadata:
 spec:
   nats:
     native:
-      replicas: 3
+      replicas: {{ .Values.natsReplicas | default 3 }}
       # Use token auth so EventSource and Sensor share eventbus credentials consistently.
       auth: token

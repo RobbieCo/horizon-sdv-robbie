@@ -1,4 +1,3 @@
-{{- if not .Values.config.local.enabled -}}
 # Copyright (c) 2026 Accenture, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +36,11 @@ spec:
       values: |
         config:
           namespacePrefix: {{ .Values.config.namespacePrefix | quote }}
+        {{- if .Values.config.local.enabled }}
+        # One NATS replica on a single desktop node. Production omits this and
+        # the EventBus chart defaults to 3.
+        natsReplicas: 1
+        {{- end }}
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ .Values.config.namespacePrefix }}argo-events
@@ -44,4 +48,3 @@ spec:
     syncOptions:
       - CreateNamespace=true
     automated: {}
-{{- end }}

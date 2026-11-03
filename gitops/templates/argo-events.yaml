@@ -1,4 +1,3 @@
-{{- if not .Values.config.local.enabled -}}
 # Copyright (c) 2024-2026 Accenture, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -156,4 +155,3 @@ roleRef:
   name: argo-events-sensor-workflows
 # EventBus + EventSource live in the dedicated child Application:
 # gitops/templates/argo-events-resources.yaml.
-{{- end }}
